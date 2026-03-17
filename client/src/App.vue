@@ -31,7 +31,7 @@ import Navbar from './components/Navbar.vue'
         </div>
       </div>
       <div class="footer-bottom">
-        <p>© 2026 Antigravity B2B Marketplace. State-of-the-Art Operations.</p>
+        <p>© 2026 B2B Marketplace.</p>
       </div>
     </footer>
   </div>
