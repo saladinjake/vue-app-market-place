@@ -1,16 +1,32 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useProductStore } from '../stores/products'
-
+import ProductCard from '../components/ProductCard.vue'
 import HeroSlider from '../components/HeroSlider.vue'
+import MasonryGrid from '../components/MasonryGrid.vue'
 
+const productStore = useProductStore()
 
+onMounted(() => {
+  productStore.fetchProducts()
+})
+
+const featuredProducts = computed(() => productStore.products.filter(p => p.featured))
+const newArrivals = computed(() => productStore.products.filter(p => p.new_arrival))
+const topSales = computed(() => productStore.products.filter(p => p.top_seller))
 </script>
 
 <template>
   <div class="home-page">
     <HeroSlider />
 
+    <section class="container mt-10">
+      <div class="section-header underline-animate">
+        <h2>New Arrivals</h2>
+        <router-link to="/products" class="view-all">View All</router-link>
+      </div>
+      <MasonryGrid :products="newArrivals.slice(0, 8)" />
+    </section>
 
     <section class="promo-banner glass">
       <div class="container banner-grid">
@@ -25,13 +41,21 @@ import HeroSlider from '../components/HeroSlider.vue'
       </div>
     </section>
 
-
+    <section class="container">
+      <div class="section-header">
+        <h2>Top Sales</h2>
+      </div>
+      <MasonryGrid :products="topSales.slice(0, 6)" />
+    </section>
   </div>
 </template>
 
 <style scoped>
 .home-page {
   padding-top: 80px;
+}
+.mt-10{
+    margin-top:10px
 }
 
 .section-header {

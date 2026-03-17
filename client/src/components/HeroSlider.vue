@@ -75,6 +75,7 @@ onUnmounted(() => {
 .hero-slider {
   height: 85vh;
   width: 100%;
+  margin-top:-80px;
   position: relative;
   overflow: hidden;
   background: #fafafa;
