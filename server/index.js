@@ -59,13 +59,58 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
+app.get('/api/sellers', async (req, res) => {
+  try {
+    const sellers = await all("SELECT s.*, u.email FROM sellers s JOIN users u ON s.user_id = u.id");
+    res.json(sellers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/sellers/:id/products', async (req, res) => {
+  try {
+    const products = await all("SELECT * FROM products WHERE seller_id = ?", [req.params.id]);
+    res.json(products.map(p => ({
+      ...p,
+      images: JSON.parse(p.images || '[]'),
+      variants: JSON.parse(p.variants || '[]')
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = (await all("SELECT * FROM users WHERE email = ?", [email]))[0];
+    if (user) {
+      res.json({ success: true, user: { id: user.id, email: user.email, role: user.role } });
+    } else {
+      res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  const { email, password, role } = req.body;
+  try {
+    const result = await run("INSERT INTO users (email, password, role) VALUES (?, ?, ?)", [email, password, role || 'customer']);
+    res.json({ success: true, userId: result.lastID });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 const start = async () => {
   try {
     console.log('Initializing database...');
     await initDb();
     console.log('Seeding database...');
-    +  await seedDb();
+    await seedDb();
     console.log('Database ready.');
     app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
   } catch (err) {
@@ -75,4 +120,3 @@ const start = async () => {
 };
 
 start();
-
