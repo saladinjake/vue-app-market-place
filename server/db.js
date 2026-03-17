@@ -96,8 +96,10 @@ const initDb = async () => {
       FOREIGN KEY(user_id) REFERENCES users(id)
   )`);
 
+
+
   await run(`CREATE TABLE IF NOT EXISTS order_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER,
       product_id INTEGER,
     quantity INTEGER,
