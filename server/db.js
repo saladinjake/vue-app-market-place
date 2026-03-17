@@ -204,3 +204,104 @@ const categoryData = [
   },
 ];
 
+
+
+const seedDb = async () => {
+  const userCount = await all("SELECT COUNT(*) as count FROM users");
+  if (userCount[0].count > 0) return;
+
+  const hashedPassword = await bcrypt.hash('password123', 10);
+
+  for (let i = 1; i <= 30; i++) {
+    let role = 'customer';
+    if (i <= 5) role = 'admin';
+    else if (i <= 15) role = 'seller';
+    await run("INSERT INTO users (email, password, role) VALUES (?, ?, ?)", [`user${i}@example.com`, hashedPassword, role]);
+  }
+
+  const sellers = await all("SELECT id FROM users WHERE role = 'seller'");
+  for (const s of sellers) {
+    await run("INSERT INTO sellers (user_id, store_name, verification_status, logo) VALUES (?, ?, ?, ?)", [
+      s.id,
+      `Store ${s.id}`,
+      s.id % 3 === 0 ? 'pending' : 'verified',
+      `https://picsum.photos/seed/${s.id}store/200`
+    ]);
+  }
+
+  for (const cat of categoryData) {
+    const catRes = await run(
+      "INSERT INTO categories (name, image, icon, description) VALUES (?, ?, ?, ?)",
+      [cat.name, cat.image, cat.icon, cat.description]
+    );
+    const parentId = catRes.lastID;
+
+    // Subcategories
+    for (const sub of cat.subs) {
+      await run("INSERT INTO categories (name, parent_id, image) VALUES (?, ?, ?)", [
+        sub, parentId, `https://picsum.photos/seed/${sub.replace(/\s/g, '')}/400/300`
+      ]);
+    }
+
+    for (let i = 0; i < cat.slides.length; i++) {
+      const sl = cat.slides[i];
+      await run(
+        "INSERT INTO category_slides (category_id, title, subtitle, image, cta_label, cta_link, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [parentId, sl.title, sl.subtitle, sl.image, sl.cta, `/products?category=${parentId}`, i]
+      );
+    }
+  }
+
+  const categories = await all("SELECT id FROM categories WHERE parent_id IS NOT NULL");
+  const sellerRecords = await all("SELECT id FROM sellers WHERE verification_status = 'verified'");
+
+  const productNames = [
+    'Industrial Valve XJ-900', 'Smart PCB Module Pro', 'Hydraulic Pump H-400', 'LED Panel System',
+    'CNC Router Bit Set', 'Thermal Camera Unit', 'Organic Cotton Roll', 'Ceramic Tile Cutter',
+    'Solar Inverter 5KW', 'Stainless Steel Pipe', 'Carbon Fiber Sheet', 'Wireless Sensor Node',
+    'Industrial Fan 24V', 'Precision Caliper Set', 'Electric Forklift', 'UV Sterilizer Pro',
+    'Industrial Adhesive', 'Servo Motor 1.8Nm', 'Medical Grade Mask', 'Aluminum Profile 4080',
+    'BLDC Motor 250W', 'Chemical Pump Seal', 'Air Compressor 50L', 'Fire Suppression Kit',
+    'PLCs Control Board', 'Glass Fiber Resin', 'High Torque Gearbox', 'SS Flanged Coupling',
+    'Automotive ECU Unit', 'Pressure Gauge 100bar'
+  ];
+
+  const layouts = ['standard', 'standard', 'standard', 'wide', 'tall', 'carousel-lead'];
+
+  for (let i = 0; i < 60; i++) {
+    const catId = categories[i % categories.length].id;
+    const sellerId = sellerRecords[i % sellerRecords.length].id;
+    const price = (Math.random() * 800 + 15).toFixed(2);
+    const layout = layouts[Math.floor(Math.random() * layouts.length)];
+    const name = productNames[i % productNames.length] + (i >= productNames.length ? ` v${Math.floor(i / productNames.length) + 1}` : '');
+
+    await run(
+      `INSERT INTO products (name, price, description, category_id, seller_id, inventory, images, variants, grid_layout, featured, new_arrival, top_seller, discount)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name,
+        price,
+        `High-quality B2B industrial product. ${name} designed for demanding commercial applications with proven reliability.`,
+        catId,
+        sellerId,
+        Math.floor(Math.random() * 500) + 50,
+        JSON.stringify([
+          `https://picsum.photos/seed/prd${i}a/800/600`,
+          `https://picsum.photos/seed/prd${i}b/800/600`,
+          `https://picsum.photos/seed/prd${i}c/800/600`
+        ]),
+        JSON.stringify([
+          { type: 'Color', options: ['Silver', 'Black', 'Blue'] },
+          { type: 'Grade', options: ['Standard', 'Premium', 'Industrial'] }
+        ]),
+        layout,
+        i % 6 === 0 ? 1 : 0,
+        i % 8 === 0 ? 1 : 0,
+        i % 4 === 0 ? 1 : 0,
+        i % 10 === 0 ? 1 : 0
+      ]
+    );
+  }
+};
+
+module.exports = { db, initDb, seedDb, all, run };
