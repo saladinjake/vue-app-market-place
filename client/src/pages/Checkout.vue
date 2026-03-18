@@ -2,18 +2,21 @@
 import { ref, computed } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { useOrderStore } from '../stores/orders'
+import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import { CreditCard, Truck, Shield, ChevronRight, Check, Lock } from 'lucide-vue-next'
 
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
+const authStore = useAuthStore()
 const router = useRouter()
 
 const step = ref(1) // 1=Shipping, 2=Payment, 3=Review
 
 const shipping = ref({
-  firstName: '', lastName: '',
-  company: '', email: '',
+  firstName: authStore.user?.name?.split(' ')[0] || '', 
+  lastName: authStore.user?.name?.split(' ')[1] || '',
+  company: '', email: authStore.user?.email || '',
   phone: '', address: '',
   city: '', state: '',
   zip: '', country: 'US'
@@ -64,20 +67,48 @@ const nextStep = () => {
   step.value++
 }
 
-const placeOrder = async () => {
+const payWithPaystack = () => {
+  placing.value = true
+  
+  if (payment.value.method !== 'card') {
+    // If not card, skip Paystack and just place order
+    return placeOrder()
+  }
+
+  const handler = window.PaystackPop.setup({
+    key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_your_default_key',
+    email: shipping.value.email,
+    amount: Math.round(total.value * 100), 
+    currency: 'USD', 
+    ref: 'PAY_' + Math.floor((Math.random() * 1000000000) + 1),
+    callback: (response) => {
+      console.log('Payment complete! Reference: ' + response.reference);
+      placeOrder(response.reference)
+    },
+    onClose: () => {
+      placing.value = false
+      alert('Payment cancelled.')
+    }
+  });
+
+  handler.openIframe();
+}
+
+const placeOrder = async (paymentRef = null) => {
   placing.value = true
   try {
     const order = await orderStore.placeOrder({
-      userId: 1, //Todo:  replace with auth store user id
+      userId: authStore.user?.id || 1,
       items: cartStore.items.map(i => ({ productId: i.id, quantity: i.quantity, price: i.price })),
       shipping: shipping.value,
       shippingMethod: shippingMethod.value,
       shippingCost: selectedRate.value.price,
       tax: tax.value,
       total: total.value,
-      paymentMethod: payment.value.method
+      paymentMethod: payment.value.method,
+      paymentReference: paymentRef
     })
-    cartStore.items = []
+    cartStore.clearCart()
     router.push(`/orders/${order.orderId}?new=1`)
   } catch(e) {
     placing.value = false
@@ -279,7 +310,7 @@ const placeOrder = async () => {
 
           <div class="btn-row">
             <button class="btn-ghost" @click="step = 2">← Back</button>
-            <button class="btn-primary place-btn" @click="placeOrder" :disabled="placing">
+            <button class="btn-primary place-btn" @click="payWithPaystack" :disabled="placing">
               <Lock :size="16" v-if="!placing" />
               <span v-if="!placing">Place Order · ${{ total }}</span>
               <span v-else class="loader-sm"></span>

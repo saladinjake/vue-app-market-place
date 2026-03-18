@@ -1,6 +1,11 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { User, Mail, Lock, Building, ArrowRight } from 'lucide-vue-next'
+import { useAuthStore } from '../stores/auth'
+
+const router = useRouter()
+const useAuth = useAuthStore()
 
 const form = ref({
   name: '',
@@ -8,14 +13,16 @@ const form = ref({
   password: '',
   role: 'customer'
 })
-const loading = ref(false)
+const errorMessage = ref('')
 
 const handleSignup = async () => {
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-    window.location.href = '/login'
-  }, 1500)
+  errorMessage.value = ''
+  try {
+    await useAuth.signup(form.value)
+    router.push('/')
+  } catch (err) {
+    errorMessage.value = useAuth.error || 'Signup failed'
+  }
 }
 </script>
 
@@ -28,6 +35,9 @@ const handleSignup = async () => {
       </div>
 
       <form @submit.prevent="handleSignup" class="auth-form">
+        <div v-if="errorMessage" class="error-banner">
+          {{ errorMessage }}
+        </div>
         <div class="input-group">
           <label>Full Name</label>
           <div class="input-wrapper">
@@ -52,8 +62,8 @@ const handleSignup = async () => {
           </div>
         </div>
 
-        <button type="submit" class="btn-primary auth-submit" :disabled="loading">
-          <span v-if="!loading">Get Started <ArrowRight :size="18" /></span>
+        <button type="submit" class="btn-primary auth-submit" :disabled="useAuth.loading">
+          <span v-if="!useAuth.loading">Get Started <ArrowRight :size="18" /></span>
           <span v-else class="loader"></span>
         </button>
       </form>
@@ -91,6 +101,17 @@ const handleSignup = async () => {
      margin-bottom: 0.5rem;
      }
 .auth-header p { color: var(--text-secondary); }
+
+.error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-danger);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
 .input-group { margin-bottom: 1.5rem; }
 .input-group label { 
     display: block; 

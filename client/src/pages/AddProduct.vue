@@ -1,15 +1,33 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import axios from 'axios'
 import { Package, Plus, Image as ImageIcon, Trash2, Save, X } from 'lucide-vue-next'
+
+const router = useRouter()
+const authStore = useAuthStore()
+const categories = ref([])
+const loading = ref(false)
+const successMessage = ref('')
 
 const form = ref({
   name: '',
   price: '',
-  category: '',
+  category_id: '',
   description: '',
   stock: '',
   images: [],
   variants: [{ type: 'Color', value: '' }]
+})
+
+onMounted(async () => {
+  try {
+    const res = await axios.get('http://localhost:5000/api/categories')
+    categories.value = res.data
+  } catch (err) {
+    console.error('Failed to fetch categories:', err)
+  }
 })
 
 const addVariant = () => {
@@ -21,8 +39,38 @@ const removeVariant = (index) => {
 }
 
 const handleImageUpload = () => {
-  // Mock image add
   form.value.images.push('https://picsum.photos/seed/' + Math.random() + '/800/600')
+}
+
+const handleSubmit = async () => {
+  loading.value = true
+  try {
+    // find seller id for current user
+    const sellerRes = await axios.get('http://localhost:5000/api/sellers')
+    const seller = sellerRes.data.find(s => s.user_id === authStore.user.id)
+    
+    if (!seller) {
+      alert('You must be a registered seller to add products.')
+      return
+    }
+
+    const payload = {
+      ...form.value,
+      seller_id: seller.id,
+      images: JSON.stringify(form.value.images),
+      variants: JSON.stringify(form.value.variants)
+    }
+
+    await axios.post('http://localhost:5000/api/products', payload)
+    successMessage.value = 'Product published and awaiting admin approval!'
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 2500)
+  } catch (err) {
+    alert('Failed to publish product: ' + err.message)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -35,31 +83,30 @@ const handleImageUpload = () => {
       </div>
 
       <div class="product-form-container glass">
-        <form @submit.prevent="" class="main-form">
+        <form @submit.prevent="handleSubmit" class="main-form">
+          <div v-if="successMessage" class="success-banner">{{ successMessage }}</div>
           <!-- Section 1: Basic Info -->
           <div class="form-section">
             <h3><Package :size="20" /> Basic Information</h3>
             <div class="input-grid">
               <div class="input-group">
                 <label>Product Name</label>
-                <input v-model="form.name" type="text" placeholder="e.g. Industrial Valve XJ-900">
+                <input v-model="form.name" type="text" placeholder="e.g. Industrial Valve XJ-900" required>
               </div>
               <div class="input-group">
                 <label>Category</label>
-                <select v-model="form.category" class="glass-select">
+                <select v-model="form.category_id" class="glass-select" required>
                   <option value="">Select Category</option>
-                  <option>Machinery</option>
-                  <option>Raw Materials</option>
-                  <option>Logistics</option>
+                  <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                 </select>
               </div>
               <div class="input-group">
                 <label>Unit Price ($)</label>
-                <input v-model="form.price" type="number" step="0.01" placeholder="0.00">
+                <input v-model="form.price" type="number" step="0.01" placeholder="0.00" required>
               </div>
               <div class="input-group">
                 <label>Stock Quantity</label>
-                <input v-model="form.stock" type="number" placeholder="500">
+                <input v-model="form.stock" type="number" placeholder="500" required>
               </div>
             </div>
             <div class="input-group full">
@@ -126,11 +173,26 @@ const handleImageUpload = () => {
 .maxWidth-md { max-width: 900px; }
 
 .page-header { margin-bottom: 3rem; text-align: center; }
-.page-header h1 { display: flex; align-items: center; justify-content: center; gap: 1rem; font-size: 2.5rem; }
+.page-header h1 { display: flex;
+     align-items: center; 
+     justify-content: center; 
+     gap: 1rem; font-size: 2.5rem; 
+     }
 
 .product-form-container {
   padding: 3rem;
   border-radius: var(--radius-lg);
+}
+
+.success-banner {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--accent-secondary);
+  color: var(--accent-secondary);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 2.5rem;
+  text-align: center;
+  font-weight: 600;
 }
 
 .form-section {
@@ -241,7 +303,9 @@ const handleImageUpload = () => {
   color: white;
 }
 
-.btn-icon.danger { color: #ef4444; background: none; border: none; cursor: pointer; }
+.btn-icon.danger { color: #ef4444;
+     background: none; border: none;
+      cursor: pointer; }
 
 .form-footer {
   display: flex;
@@ -251,5 +315,7 @@ const handleImageUpload = () => {
   border-top: 1px solid var(--border-glass);
 }
 
-.btn-text { background: none; border: none; color: var(--accent-primary); cursor: pointer; font-weight: 600; }
+.btn-text { background: none;
+ border: none; color: var(--accent-primary);
+  cursor: pointer; font-weight: 600; }
 </style>

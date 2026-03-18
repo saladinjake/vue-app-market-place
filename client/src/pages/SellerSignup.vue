@@ -1,8 +1,19 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import axios from 'axios'
 import { Building2, Globe, FileText, CheckCircle, ArrowRight } from 'lucide-vue-next'
+
+const router = useRouter()
+const authStore = useAuthStore()
 const step = ref(1)
+const loading = ref(false)
+
 const form = ref({
+  name: '', // user name
+  email: '',
+  password: '',
   companyName: '',
   businessReg: '',
   website: '',
@@ -10,9 +21,38 @@ const form = ref({
   description: ''
 })
 
-const nextStep = () => {
-  if (step.value < 3) step.value++
-  else window.location.href = '/dashboard'
+const nextStep = async () => {
+  if (step.value < 2) {
+      step.value++
+  } else if (step.value === 2) {
+      // Final step: Register
+      loading.value = true
+      try {
+          // 1. Sign up user as seller
+          const userRes = await authStore.signup({
+              name: form.value.name,
+              email: form.value.email,
+              password: form.value.password,
+              role: 'seller'
+          })
+
+          // 2. Create seller profile
+          await axios.post('http://localhost:5000/api/sellers', {
+              user_id: userRes.userId,
+              name: form.value.companyName,
+              email: form.value.email, // business email
+              description: form.value.description || 'Enterprise Industrial Supplier'
+          })
+
+          step.value = 3
+      } catch (err) {
+          alert('Signup failed: ' + (err.response?.data?.message || err.message))
+      } finally {
+          loading.value = false
+      }
+  } else {
+      router.push('/dashboard')
+  }
 }
 </script>
 
@@ -29,6 +69,27 @@ const nextStep = () => {
       <div class="signup-card glass">
         <div v-if="step === 1" class="step-content animate-fade-in">
           <div class="header">
+            <h1 class="gradient-text">Account Creation</h1>
+            <p>Create your enterprise account to start selling.</p>
+          </div>
+          <div class="form-grid">
+            <div class="input-group full">
+              <label>Full Name</label>
+              <input v-model="form.name" type="text" placeholder="John Doe" required>
+            </div>
+            <div class="input-group">
+              <label>Work Email</label>
+              <input v-model="form.email" type="email" placeholder="name@company.com" required>
+            </div>
+            <div class="input-group">
+              <label>Password</label>
+              <input v-model="form.password" type="password" placeholder="••••••••" required>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="step === 2" class="step-content animate-fade-in">
+          <div class="header">
             <h1 class="gradient-text">Business Profile</h1>
             <p>Tell us about your company to start selling globally.</p>
           </div>
@@ -38,26 +99,12 @@ const nextStep = () => {
               <input v-model="form.companyName" type="text" placeholder="e.g. Apex Industrial Ltd">
             </div>
             <div class="input-group">
-              <label><FileText :size="16" /> Business Registration Number</label>
+              <label><FileText :size="16" /> Registration Number</label>
               <input v-model="form.businessReg" type="text" placeholder="RE-9283-X">
             </div>
             <div class="input-group full">
               <label><Globe :size="16" /> Business Website</label>
               <input v-model="form.website" type="url" placeholder="https://apex-industrial.com">
-            </div>
-          </div>
-        </div>
-
-        <div v-if="step === 2" class="step-content animate-fade-in">
-          <div class="header">
-            <h1 class="gradient-text">Verification</h1>
-            <p>Upload documentation for account verification.</p>
-          </div>
-          <div class="upload-area">
-            <div class="upload-box glass-card">
-              <FileText :size="40" />
-              <p>Drag and drop certificate of incorporation</p>
-              <button class="btn-outline">Browse Files</button>
             </div>
           </div>
         </div>

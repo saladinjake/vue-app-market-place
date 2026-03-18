@@ -1,21 +1,32 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { LayoutDashboard, ShoppingBag, Users, Settings, Package, BarChart3, Plus, ChevronRight } from 'lucide-vue-next'
 import { useOrderStore } from '../stores/orders'
+import { useAuthStore } from '../stores/auth'
 
-const role = ref('seller') // This would come from auth store
+const authStore = useAuthStore()
+const router = useRouter()
+const role = ref(authStore.user?.role || 'customer')
 const activeTab = ref('overview')
 const orderStore = useOrderStore()
 
 onMounted(() => {
-  orderStore.fetchOrders(1) // Placeholder userId
+  if (authStore.user?.id) {
+    orderStore.fetchOrders(authStore.user.id)
+  }
 })
 
 watch(activeTab, (newTab) => {
-  if (newTab === 'orders' || newTab === 'overview') {
-    orderStore.fetchOrders(1)
+  if ((newTab === 'orders' || newTab === 'overview') && authStore.user?.id) {
+    orderStore.fetchOrders(authStore.user.id)
   }
 })
+
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/login')
+}
 
 const stats = [
   { label: 'Total Orders', value: '1,284', icon: ShoppingBag, color: 'blue' },
@@ -31,10 +42,10 @@ const stats = [
       <!-- Sidebar -->
       <aside class="dash-sidebar glass">
         <div class="user-profile">
-          <div class="avatar">VS</div>
+          <div class="avatar">{{ authStore.user?.name ? authStore.user.name.charAt(0) : (authStore.user?.email ? authStore.user.email.charAt(0).toUpperCase() : 'U') }}</div>
           <div class="profile-info">
-            <h4>Victor Store</h4>
-            <span>Tier 1 Seller</span>
+            <h4>{{ authStore.user?.name || authStore.user?.email || 'User' }}</h4>
+            <span>{{ authStore.user?.role || 'Customer' }}</span>
           </div>
         </div>
 
@@ -51,7 +62,7 @@ const stats = [
         </nav>
 
         <div class="sidebar-footer">
-          <button class="btn-logout">Sign Out</button>
+          <button class="btn-logout" @click="handleLogout">Sign Out</button>
         </div>
       </aside>
 

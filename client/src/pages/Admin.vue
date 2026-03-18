@@ -1,15 +1,49 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
 import { Shield, CheckCircle, XCircle, Users, Package, AlertTriangle } from 'lucide-vue-next'
 
-const pendingSellers = ref([
-  { id: 1, name: 'Industrial Supplies Co.', email: 'contact@indusupplies.com', date: '2026-03-14' },
-  { id: 2, name: 'Global Pumps & Valves', email: 'sales@gpumps.de', date: '2026-03-15' },
-])
+const pendingSellers = ref([])
+const pendingProducts = ref([])
+const stats = ref({ sellers: 0, products: 0, revenue: 0 })
 
-const pendingProducts = ref([
-  { id: 101, name: 'Heavy Duty Compressor', seller: 'Store 5', price: '$4,200', category: 'Machinery' },
-])
+const fetchData = async () => {
+    try {
+        const sellersRes = await axios.get('http://localhost:5000/api/admin/pending-sellers')
+        pendingSellers.value = sellersRes.data
+        
+        const productsRes = await axios.get('http://localhost:5000/api/admin/pending-products')
+        pendingProducts.value = productsRes.data
+
+        const allSellers = await axios.get('http://localhost:5000/api/sellers')
+        const allProds = await axios.get('http://localhost:5000/api/products')
+        stats.value.sellers = allSellers.data.length
+        stats.value.products = allProds.data.length
+        stats.value.revenue = 1250000 
+    } catch (err) {
+        console.error('Admin fetch error:', err)
+    }
+}
+
+onMounted(fetchData)
+
+const verifySeller = async (id, status) => {
+    try {
+        await axios.put(`http://localhost:5000/api/admin/sellers/${id}/verify`, { status })
+        await fetchData()
+    } catch (err) {
+        alert('Verification failed')
+    }
+}
+
+const verifyProduct = async (id, status) => {
+    try {
+        await axios.put(`http://localhost:5000/api/admin/products/${id}/verify`, { status })
+        await fetchData()
+    } catch (err) {
+        alert('Product moderation failed')
+    }
+}
 </script>
 
 <template>
@@ -18,9 +52,9 @@ const pendingProducts = ref([
       <header class="admin-header">
         <h1><Shield class="gradient-text" /> Admin Control Center</h1>
         <div class="admin-stats">
-          <div class="stat glass"><span>Sellers</span> 124</div>
-          <div class="stat glass"><span>Products</span> 1,204</div>
-          <div class="stat glass"><span>Revenue</span> $1.2M</div>
+          <div class="stat glass"><span>Sellers</span> {{ stats.sellers }}</div>
+          <div class="stat glass"><span>Products</span> {{ stats.products }}</div>
+          <div class="stat glass"><span>Revenue</span> ${{ (stats.revenue / 1000000).toFixed(1) }}M</div>
         </div>
       </header>
 
@@ -35,13 +69,14 @@ const pendingProducts = ref([
             <div v-for="seller in pendingSellers" :key="seller.id" class="list-item">
               <div class="item-info">
                 <h4>{{ seller.name }}</h4>
-                <p>{{ seller.email }} • Applied on {{ seller.date }}</p>
+                <p>{{ seller.email }} • Applied for verification</p>
               </div>
               <div class="actions">
-                <button class="btn-icon approve"><CheckCircle :size="20" /></button>
-                <button class="btn-icon reject"><XCircle :size="20" /></button>
+                <button @click="verifySeller(seller.id, 'verified')" class="btn-icon approve"><CheckCircle :size="20" /></button>
+                <button @click="verifySeller(seller.id, 'rejected')" class="btn-icon reject"><XCircle :size="20" /></button>
               </div>
             </div>
+            <div v-if="pendingSellers.length === 0" class="empty-state">No pending verifications.</div>
           </div>
         </section>
 
@@ -55,13 +90,14 @@ const pendingProducts = ref([
             <div v-for="prod in pendingProducts" :key="prod.id" class="list-item">
               <div class="item-info">
                 <h4>{{ prod.name }}</h4>
-                <p>{{ prod.seller }} • {{ prod.category }} • {{ prod.price }}</p>
+                <p>{{ prod.seller }} • ${{ prod.price }} • Approval Requested</p>
               </div>
               <div class="actions">
-                <button class="btn-icon approve"><CheckCircle :size="20" /></button>
-                <button class="btn-icon reject"><XCircle :size="20" /></button>
+                <button @click="verifyProduct(prod.id, 'approved')" class="btn-icon approve"><CheckCircle :size="20" /></button>
+                <button @click="verifyProduct(prod.id, 'rejected')" class="btn-icon reject"><XCircle :size="20" /></button>
               </div>
             </div>
+            <div v-if="pendingProducts.length === 0" class="empty-state">No products awaiting approval.</div>
           </div>
         </section>
 

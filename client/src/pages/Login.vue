@@ -1,22 +1,27 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Mail, Lock, ArrowRight } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 
 const email = ref('')
 const password = ref('')
-const loading = ref(false)
+const errorMessage = ref('')
 const useAuth = useAuthStore()
+const router = useRouter()
 
 const handleLogin = async () => {
-  loading.value = true
-  console.log(email.value, password.value)
- //await useAuth.login({ body: {email, password}})
- //mocked up auth bcus fix needs doubl chk
-  setTimeout(() => {
-    loading.value = false
-    window.location.href = '/'
-  }, 1500)
+  errorMessage.value = ''
+  try {
+    await useAuth.login({ email: email.value, password: password.value })
+    if (useAuth.user.role === 'admin') {
+      router.push('/admin')
+    } else {
+      router.push('/')
+    }
+  } catch (err) {
+    errorMessage.value = useAuth.error || 'Login failed'
+  }
 }
 </script>
 
@@ -29,6 +34,9 @@ const handleLogin = async () => {
       </div>
 
       <form @submit.prevent="handleLogin" class="auth-form">
+        <div v-if="errorMessage" class="error-banner">
+          {{ errorMessage }}
+        </div>
         <div class="input-group">
           <label>Email Address</label>
           <div class="input-wrapper">
@@ -54,8 +62,8 @@ const handleLogin = async () => {
           <router-link to="/forgot-password" class="forgot-link">Forgot password?</router-link>
         </div>
 
-        <button type="submit" class="btn-primary auth-submit" :disabled="loading">
-          <span v-if="!loading">Sign In <ArrowRight :size="18" /></span>
+        <button type="submit" class="btn-primary auth-submit" :disabled="useAuth.loading">
+          <span v-if="!useAuth.loading">Sign In <ArrowRight :size="18" /></span>
           <span v-else class="loader"></span>
         </button>
       </form>
@@ -97,6 +105,17 @@ const handleLogin = async () => {
 
 .auth-header p {
   color: var(--text-secondary);
+}
+
+.error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-danger);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .input-group {
