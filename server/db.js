@@ -67,20 +67,24 @@ const initDb = async () => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     price REAL,
-        description TEXT,
+    description TEXT,
     category_id INTEGER,
     seller_id INTEGER,
     inventory INTEGER,
     images TEXT,
-        variants TEXT,
+    variants TEXT,
     grid_layout TEXT DEFAULT 'standard',
     featured INTEGER DEFAULT 0,
-     new_arrival INTEGER DEFAULT 0,
-      top_seller INTEGER DEFAULT 0,
+    new_arrival INTEGER DEFAULT 0,
+    top_seller INTEGER DEFAULT 0,
     discount INTEGER DEFAULT 0,
-      FOREIGN KEY(category_id) REFERENCES categories(id),
+    status TEXT DEFAULT 'pending',
+    FOREIGN KEY(category_id) REFERENCES categories(id),
     FOREIGN KEY(seller_id) REFERENCES sellers(id)
   )`);
+
+  try { await run("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'"); } catch(e) {}
+  await run("UPDATE products SET status = 'approved' WHERE status = 'pending'");
 
   await run(`CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

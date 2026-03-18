@@ -27,7 +27,7 @@ app.get('/api/categories/mega', async (req, res) => {
 app.get('/api/products', async (req, res) => {
   try {
     const { category, search, layout, featured, new_arrival, top_seller, discount, limit } = req.query;
-    let query = "SELECT * FROM products WHERE 1=1";
+    let query = "SELECT * FROM products WHERE status = 'approved'";
     const params = [];
     if (category) { query += " AND category_id = ?"; params.push(category); }
     if (search) { query += " AND name LIKE ?"; params.push(`%${search}%`); }
@@ -81,12 +81,18 @@ app.get('/api/sellers/:id/products', async (req, res) => {
   }
 });
 
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = (await all("SELECT * FROM users WHERE email = ?", [email]))[0];
+    const user = (await all("SELECT * FROM users WHERE email = ? AND password = ?", [email, password]))[0];
     if (user) {
-      res.json({ success: true, user: { id: user.id, email: user.email, role: user.role } });
+      const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+      res.json({ success: true, user: { id: user.id, email: user.email, role: user.role }, token });
     } else {
       res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
@@ -99,7 +105,9 @@ app.post('/api/auth/register', async (req, res) => {
   const { email, password, role } = req.body;
   try {
     const result = await run("INSERT INTO users (email, password, role) VALUES (?, ?, ?)", [email, password, role || 'customer']);
-    res.json({ success: true, userId: result.lastID });
+    const userId = result.lastID;
+    const token = jwt.sign({ id: userId, email, role: role || 'customer' }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ success: true, userId, token, user: { id: userId, email, role: role || 'customer' } });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -117,10 +125,29 @@ app.get('/api/admin/pending-sellers', async (req, res) => {
   }
 });
 
+app.get('/api/admin/pending-products', async (req, res) => {
+  try {
+    const products = await all("SELECT p.*, s.store_name as seller FROM products p JOIN sellers s ON p.seller_id = s.id WHERE p.status = 'pending'");
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.put('/api/admin/sellers/:id/verify', async (req, res) => {
   const { status } = req.body;
   try {
     await run("UPDATE sellers SET verification_status = ? WHERE id = ?", [status, req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/admin/products/:id/verify', async (req, res) => {
+  const { status } = req.body;
+  try {
+    await run("UPDATE products SET status = ? WHERE id = ?", [status, req.params.id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
