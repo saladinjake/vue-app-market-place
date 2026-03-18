@@ -12,6 +12,7 @@ const routes = [
   { path: '/products', component: () => import('./pages/Products.vue') },
   { path: '/cart', component: () => import('./pages/Cart.vue') },
   { path: '/checkout', component: () => import('./pages/Checkout.vue') },
+  { path: '/orders/:id', component: () => import('./pages/OrderDetail.vue') },
 
 ]
 
