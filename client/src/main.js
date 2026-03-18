@@ -18,6 +18,10 @@ const routes = [
 
   { path: '/seller/signup', component: () => import('./pages/SellerSignup.vue') },
   { path: '/seller/setup', component: () => import('./pages/SellerSignup.vue') },
+  { path: '/seller/add-product', component: () => import('./pages/AddProduct.vue') },
+
+  { path: '/store/:id', component: () => import('./pages/Storefront.vue') },
+  { path: '/admin', component: () => import('./pages/Admin.vue') },
 
 
 
