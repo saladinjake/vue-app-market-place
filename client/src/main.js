@@ -13,6 +13,13 @@ const routes = [
   { path: '/cart', component: () => import('./pages/Cart.vue') },
   { path: '/checkout', component: () => import('./pages/Checkout.vue') },
   { path: '/orders/:id', component: () => import('./pages/OrderDetail.vue') },
+  { path: '/dashboard', component: () => import('./pages/Dashboard.vue') },
+  { path: '/orders', component: () => import('./pages/Dashboard.vue') }, //same page 
+
+  { path: '/seller/signup', component: () => import('./pages/SellerSignup.vue') },
+  { path: '/seller/setup', component: () => import('./pages/SellerSignup.vue') },
+
+
 
 ]
 
