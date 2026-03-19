@@ -11,12 +11,12 @@ All accounts share the same password for testing.
 
 **Password**: `password123`
 
-### 🛡️ Admin Accounts
+###  Admin Accounts
 - `user1@example.com`
 - `user2@example.com`
 - `user3@example.com`
 
-### 🏪 Seller Accounts
+###  Seller Accounts
 - `user6@example.com`
 - `user7@example.com`
 - `user8@example.com`
@@ -27,7 +27,19 @@ All accounts share the same password for testing.
 - `user18@example.com`
 
 ## Features
-- **Role-based Authentication**: Dedicated dashboards for customers, sellers, and admins.
-- **Paystack Payment**: Integrated credit card payments in the checkout flow.
-- **Dynamic Marketplace**: Browse categories, products, and manage inventories.
-- **Admin Control**: Verify sellers and moderate listings.
+- **Dual Payment Integration**: Choose between **Paystack** and **Stripe** at checkout.
+- **Admin Control**: Verify sellers and moderate products in the Control Center.
+- **Dynamic Marketplace**: Global B2B components with role-based access.
+
+## 🔑 Environment Configuration
+Create a `.env` in both `client` and `server` folders.
+
+**Server**:
+- `STRIPE_SECRET_KEY`: sk_test_...
+- `PAYSTACK_SECRET_KEY`: sk_test_...
+- `JWT_SECRET`: any_secret_string
+
+**Client**:
+- `VITE_STRIPE_PUBLIC_KEY`: pk_test_...
+- `VITE_PAYSTACK_PUBLIC_KEY`: pk_test_...
+- `VITE_API_URL`: http://localhost:5000 (Pinia) or 5001 (Vuex)

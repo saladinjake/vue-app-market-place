@@ -289,9 +289,8 @@ const MegaSlider = defineComponent({
 .cat-ribbon { background: #fff; border-top: 1px solid var(--border); }
 .ribbon-row {
   display: flex; align-items: stretch;
-  overflow-x: auto; scrollbar-width: none;
+  overflow: visible;
 }
-.ribbon-row::-webkit-scrollbar { display: none; }
 
 .ribbon-item { position: relative; }
 

@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
+import axios from 'axios'
 import { useCartStore } from '../stores/cart'
 import { useOrderStore } from '../stores/orders'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
-import { CreditCard, Truck, Shield, ChevronRight, Check, Lock } from 'lucide-vue-next'
+import { CreditCard, Truck, Shield, ChevronRight, Check, Lock, Globe } from 'lucide-vue-next'
 
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
@@ -12,6 +13,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 
 const step = ref(1) // 1=Shipping, 2=Payment, 3=Review
+const paymentGateway = ref('paystack')
 
 const shipping = ref({
   firstName: authStore.user?.name?.split(' ')[0] || '', 
@@ -67,11 +69,45 @@ const nextStep = () => {
   step.value++
 }
 
+const payWithStripe = async () => {
+  placing.value = true
+  try {
+    const stripe = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
+      items: cartStore.items,
+      email: shipping.value.email
+    });
+    
+    // Create pre-payment order record
+    await orderStore.placeOrder({
+      userId: authStore.user?.id || 1,
+      items: cartStore.items.map(i => ({ productId: i.id, quantity: i.quantity, price: i.price, name: i.name })),
+      shipping: shipping.value,
+      shippingMethod: shippingMethod.value,
+      shippingCost: selectedRate.value.price,
+      tax: tax.value,
+      total: total.value,
+      paymentMethod: 'STRIPE',
+      paymentReference: res.data.id
+    })
+    cartStore.clearCart()
+
+    const result = await stripe.redirectToCheckout({
+      sessionId: res.data.id
+    });
+    if (result.error) alert(result.error.message);
+  } catch (err) {
+    console.error('Stripe error:', err)
+    alert('Stripe initialization failed.')
+  } finally {
+    placing.value = false
+  }
+}
+
 const payWithPaystack = () => {
   placing.value = true
   
   if (payment.value.method !== 'card') {
-    // If not card, skip Paystack and just place order
     return placeOrder()
   }
 
@@ -82,7 +118,6 @@ const payWithPaystack = () => {
     currency: 'USD', 
     ref: 'PAY_' + Math.floor((Math.random() * 1000000000) + 1),
     callback: (response) => {
-      console.log('Payment complete! Reference: ' + response.reference);
       placeOrder(response.reference)
     },
     onClose: () => {
@@ -99,13 +134,13 @@ const placeOrder = async (paymentRef = null) => {
   try {
     const order = await orderStore.placeOrder({
       userId: authStore.user?.id || 1,
-      items: cartStore.items.map(i => ({ productId: i.id, quantity: i.quantity, price: i.price })),
+      items: cartStore.items.map(i => ({ productId: i.id, quantity: i.quantity, price: i.price, name: i.name })),
       shipping: shipping.value,
       shippingMethod: shippingMethod.value,
       shippingCost: selectedRate.value.price,
       tax: tax.value,
       total: total.value,
-      paymentMethod: payment.value.method,
+      paymentMethod: paymentGateway.value.toUpperCase(),
       paymentReference: paymentRef
     })
     cartStore.clearCart()
@@ -233,6 +268,21 @@ const placeOrder = async (paymentRef = null) => {
             </label>
           </div>
 
+          <!-- Payment Gateway Selection -->
+          <div v-if="payment.method === 'card'" class="gateway-selection">
+            <h3>Select Payment Gateway</h3>
+            <div class="gateway-grid">
+              <div class="gateway-card" :class="{ active: paymentGateway === 'paystack' }" @click="paymentGateway = 'paystack'">
+                <CreditCard :size="24" />
+                <span>Paystack</span>
+              </div>
+              <div class="gateway-card" :class="{ active: paymentGateway === 'stripe' }" @click="paymentGateway = 'stripe'">
+                <Globe :size="24" />
+                <span>Stripe</span>
+              </div>
+            </div>
+          </div>
+
           <div v-if="payment.method === 'card'" class="form-grid">
             <div class="field full">
               <label>Card Number</label>
@@ -310,10 +360,10 @@ const placeOrder = async (paymentRef = null) => {
 
           <div class="btn-row">
             <button class="btn-ghost" @click="step = 2">← Back</button>
-            <button class="btn-primary place-btn" @click="payWithPaystack" :disabled="placing">
+            <button class="btn-primary place-btn" @click="paymentGateway === 'stripe' ? payWithStripe() : payWithPaystack()" :disabled="placing">
               <Lock :size="16" v-if="!placing" />
-              <span v-if="!placing">Place Order · ${{ total }}</span>
-              <span v-else class="loader-sm"></span>
+              <span v-if="!placing">Pay with {{ paymentGateway === 'stripe' ? 'Stripe' : 'Paystack' }} · ${{ total }}</span>
+              <span v-else class="loader-sm">Processing...</span>
             </button>
           </div>
         </section>
@@ -429,7 +479,19 @@ const placeOrder = async (paymentRef = null) => {
     gap: 0.75rem; margin-bottom: 1.75rem; 
     color: var(--accent-primary); 
 }
-.section-title-row h2 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
+.section-title-row h2 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+
+.gateway-selection { margin-bottom: 2.5rem; }
+.gateway-selection h3 { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+.gateway-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.gateway-card { 
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 1.25rem; border: 2px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.2s ease;
+  background: var(--bg-surface);
+}
+.gateway-card:hover { border-color: var(--accent-primary); background: rgba(59, 130, 246, 0.02); }
+.gateway-card.active { border-color: var(--accent-primary); background: rgba(59, 130, 246, 0.05); color: var(--accent-primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
+.gateway-card span { font-weight: 700; font-size: 0.85rem; }
 
 .form-grid { 
     display: grid; 

@@ -119,7 +119,7 @@ const initDb = async () => {
 const categoryData = [
   {
     name: 'Electronics',
-    icon: '',
+    icon: '🔌',
     description: 'Components, semiconductors, IoT devices',
     image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80',
     subs: ['Semiconductors', 'PCB Components', 'IoT Modules', 'Power Systems', 'Sensors'],
@@ -131,7 +131,7 @@ const categoryData = [
   },
   {
     name: 'Industrial',
-    icon: '',
+    icon: '🏭',
     description: 'Machinery, tools & manufacturing equipment',
     image: 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=600&q=80',
     subs: ['Heavy Machinery', 'Pumps & Valves', 'Hydraulics', 'CNC Equipment', 'Safety Tools'],
@@ -143,7 +143,7 @@ const categoryData = [
   },
   {
     name: 'Fashion & Apparel',
-    icon: '',
+    icon: '👔',
     description: 'Wholesale clothing, textiles & accessories',
     image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&q=80',
     subs: ['Womens Wear', 'Mens Wear', 'Sportswear', 'Accessories', 'Fabrics & Textiles'],
@@ -154,7 +154,7 @@ const categoryData = [
   },
   {
     name: 'Home & Garden',
-    icon: '',
+    icon: '🏠',
     description: 'Furniture, décor, tools & outdoor',
     image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80',
     subs: ['Furniture', 'Lighting', 'Garden Tools', 'Kitchen & Bath', 'Storage Solutions'],
@@ -165,7 +165,7 @@ const categoryData = [
   },
   {
     name: 'Automotive',
-    icon: '',
+    icon: '🚗',
     description: 'Parts, accessories & fleet solutions',
     image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&q=80',
     subs: ['OEM Parts', 'Aftermarket', 'Fleet Management', 'Tires & Wheels', 'Electrical Parts'],
@@ -176,7 +176,7 @@ const categoryData = [
   },
   {
     name: 'Health & Beauty',
-    icon: '',
+    icon: '🏥',
     description: 'Medical supplies, cosmetics & wellness',
     image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&q=80',
     subs: ['Medical Devices', 'Pharmaceuticals', 'Cosmetics', 'Wellness', 'Lab Supplies'],
@@ -187,7 +187,7 @@ const categoryData = [
   },
   {
     name: 'Food & Agriculture',
-    icon: '',
+    icon: '🌾',
     description: 'Commodities, packaged goods & agri tools',
     image: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600&q=80',
     subs: ['Grains & Cereals', 'Fresh Produce', 'Processed Foods', 'Agri Equipment', 'Fertilisers'],
@@ -198,7 +198,7 @@ const categoryData = [
   },
   {
     name: 'Chemicals',
-    icon: '',
+    icon: '🧪',
     description: 'Industrial chemicals, coatings & compounds',
     image: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&q=80',
     subs: ['Industrial Solvents', 'Adhesives', 'Paints & Coatings', 'Cleaning Agents', 'Specialty Chemicals'],

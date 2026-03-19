@@ -1,12 +1,38 @@
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config();
 const { initDb, seedDb, all, run } = require('./db');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
+
+app.post('/api/create-checkout-session', async (req, res) => {
+  const { items, email } = req.body;
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: items.map(item => ({
+        price_data: {
+          currency: 'usd',
+          product_data: { name: item.name },
+          unit_amount: Math.round(item.price * 100),
+        },
+        quantity: item.quantity,
+      })),
+      mode: 'payment',
+      success_url: `${req.headers.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.origin}/checkout`,
+      customer_email: email,
+    });
+    res.json({ id: session.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get('/api/categories/mega', async (req, res) => {
   try {
@@ -82,6 +108,7 @@ app.get('/api/sellers/:id/products', async (req, res) => {
 });
 
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
@@ -89,8 +116,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = (await all("SELECT * FROM users WHERE email = ? AND password = ?", [email, password]))[0];
-    if (user) {
+    const user = (await all("SELECT * FROM users WHERE email = ?", [email]))[0];
+    if (user && await bcrypt.compare(password, user.password)) {
       const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
       res.json({ success: true, user: { id: user.id, email: user.email, role: user.role }, token });
     } else {
@@ -104,7 +131,8 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
   const { email, password, role } = req.body;
   try {
-    const result = await run("INSERT INTO users (email, password, role) VALUES (?, ?, ?)", [email, password, role || 'customer']);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await run("INSERT INTO users (email, password, role) VALUES (?, ?, ?)", [email, hashedPassword, role || 'customer']);
     const userId = result.lastID;
     const token = jwt.sign({ id: userId, email, role: role || 'customer' }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ success: true, userId, token, user: { id: userId, email, role: role || 'customer' } });
@@ -224,7 +252,17 @@ const start = async () => {
     console.log('Seeding database...');
     await seedDb();
     console.log('Database ready.');
-    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is occupied. Please kill the process using it or change the port in .env`);
+        process.exit(1);
+      } else {
+        console.error('Server error:', err);
+      }
+    });
   } catch (err) {
     console.error('Startup error:', err);
     process.exit(1);
