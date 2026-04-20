@@ -212,7 +212,9 @@ const categoryData = [
 
 const seedDb = async () => {
   const userCount = await all("SELECT COUNT(*) as count FROM users");
-  if (userCount[0].count > 0) return;
+  const productCount = await all("SELECT COUNT(*) as count FROM products");
+  
+  if (userCount[0].count > 0 && productCount[0].count > 0) return;
 
   const hashedPassword = await bcrypt.hash('password123', 10);
 
@@ -280,8 +282,8 @@ const seedDb = async () => {
     const name = productNames[i % productNames.length] + (i >= productNames.length ? ` v${Math.floor(i / productNames.length) + 1}` : '');
 
     await run(
-      `INSERT INTO products (name, price, description, category_id, seller_id, inventory, images, variants, grid_layout, featured, new_arrival, top_seller, discount)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (name, price, description, category_id, seller_id, inventory, images, variants, grid_layout, featured, new_arrival, top_seller, discount, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name,
         price,
@@ -302,7 +304,8 @@ const seedDb = async () => {
         i % 6 === 0 ? 1 : 0,
         i % 8 === 0 ? 1 : 0,
         i % 4 === 0 ? 1 : 0,
-        i % 10 === 0 ? 1 : 0
+        i % 10 === 0 ? 1 : 0,
+        'approved'
       ]
     );
   }

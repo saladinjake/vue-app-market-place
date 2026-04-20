@@ -23,7 +23,7 @@ const form = ref({
 
 onMounted(async () => {
   try {
-    const res = await axios.get('http://localhost:5000/api/categories')
+    const res = await axios.get('http://localhost:5005/api/categories')
     categories.value = res.data
   } catch (err) {
     console.error('Failed to fetch categories:', err)
@@ -46,7 +46,7 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     // find seller id for current user
-    const sellerRes = await axios.get('http://localhost:5000/api/sellers')
+    const sellerRes = await axios.get('http://localhost:5005/api/sellers')
     const seller = sellerRes.data.find(s => s.user_id === authStore.user.id)
     
     if (!seller) {
@@ -61,7 +61,7 @@ const handleSubmit = async () => {
       variants: JSON.stringify(form.value.variants)
     }
 
-    await axios.post('http://localhost:5000/api/products', payload)
+    await axios.post('http://localhost:5005/api/products', payload)
     successMessage.value = 'Product published and awaiting admin approval!'
     setTimeout(() => {
       router.push('/dashboard')

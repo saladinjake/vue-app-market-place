@@ -119,13 +119,22 @@ onUnmounted(() => {
 .slide-content {
   position: relative;
   z-index: 20;
+  width: 100%;
+}
+
+.text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin: 0 auto;
 }
 
 .title {
   font-size: 5rem;
   font-weight: 800;
   line-height: 1;
-  margin: 1rem 0 2.5rem;
+  margin: 1rem auto 2.5rem;
   max-width: 800px;
 }
 
@@ -140,6 +149,7 @@ onUnmounted(() => {
 .cta-group {
   display: flex;
   gap: 1.5rem;
+  justify-content: center;
 }
 
 .btn-outline {

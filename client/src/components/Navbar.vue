@@ -1,8 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { ShoppingCart, User, Search, ChevronDown, Menu, X, Package, Bell, ArrowRight } from 'lucide-vue-next'
+import { ShoppingCart, User, Search, ChevronDown, Menu, X, Package, Bell, ArrowRight, Plug, Factory, Shirt, Home, Car, HeartPulse, Wheat, FlaskConical } from 'lucide-vue-next'
 import { useProductStore } from '../stores/products'
 import { useCartStore } from '../stores/cart'
+import MegaSlider from './MegaSlider.vue'
 
 const productStore = useProductStore()
 const cartStore = useCartStore()
@@ -10,6 +11,20 @@ const isMenuOpen = ref(false)
 const activeMegaMenu = ref(null)
 const searchQuery = ref('')
 let closeTimer = null
+
+const getCategoryIcon = (name) => {
+  const map = {
+    'Electronics': Plug,
+    'Industrial': Factory,
+    'Fashion & Apparel': Shirt,
+    'Home & Garden': Home,
+    'Automotive': Car,
+    'Health & Beauty': HeartPulse,
+    'Food & Agriculture': Wheat,
+    'Chemicals': FlaskConical
+  }
+  return map[name] || Package
+}
 
 onMounted(() => {
   productStore.fetchMegaMenu()
@@ -96,7 +111,7 @@ const keepOpen = () => {
           @mouseleave="closeMenu"
         >
           <span class="ribbon-link" :class="{ active: activeMegaMenu === cat.id }">
-            <span class="cat-icon">{{ cat.icon }}</span>
+            <component :is="getCategoryIcon(cat.name)" :size="16" class="cat-icon" />
             {{ cat.name }}
             <ChevronDown :size="13" class="chevron" :class="{ rotated: activeMegaMenu === cat.id }" />
           </span>
@@ -112,7 +127,7 @@ const keepOpen = () => {
               <div class="mega-inner">
               
                 <div class="mega-cats">
-                  <p class="mega-label">{{ cat.icon }} {{ cat.name }}</p>
+                  <p class="mega-label" style="display:flex; align-items:center; gap:6px;"><component :is="getCategoryIcon(cat.name)" :size="18" /> {{ cat.name }}</p>
                   <p class="mega-desc">{{ cat.description }}</p>
                   <ul class="sub-list">
                     <li v-for="sub in cat.subcategories" :key="sub.id">
@@ -152,7 +167,7 @@ const keepOpen = () => {
     <transition name="slide-down">
       <div v-if="isMenuOpen" class="mobile-drawer">
         <div v-for="cat in productStore.megaMenu" :key="cat.id" class="m-item">
-          <span class="m-cat">{{ cat.icon }} {{ cat.name }}</span>
+          <span class="m-cat" style="display:flex; align-items:center; gap:8px;"><component :is="getCategoryIcon(cat.name)" :size="16" /> {{ cat.name }}</span>
         </div>
       </div>
     </transition>
@@ -161,51 +176,7 @@ const keepOpen = () => {
   <div style="height: 142px;"></div>
 </template>
 
-<script>
-
-import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
-const MegaSlider = defineComponent({
-  name: 'MegaSlider',
-  props: { slides: Array },
-  setup(props) {
-    const idx = ref(0)
-    let timer = null
-    const next = () => { idx.value = (idx.value + 1) % props.slides.length }
-    onMounted(() => { timer = setInterval(next, 3500) })
-    onUnmounted(() => clearInterval(timer))
-    return { idx }
-  },
-  template: `
-    <div class="mega-slider" v-if="slides && slides.length">
-      <div class="slide-wrap">
-        <transition-group name="slide-fade" tag="div" class="slides-container">
-          <div v-for="(sl, i) in slides" :key="sl.id || i" v-show="idx === i" class="slide-item">
-            <img :src="sl.image" :alt="sl.title" />
-            <div class="slide-caption">
-              <span class="slide-tag">Featured</span>
-              <h4>{{ sl.title }}</h4>
-              <p>{{ sl.subtitle }}</p>
-              <a :href="sl.cta_link || '#'" class="slide-cta">{{ sl.cta_label }} →</a>
-            </div>
-          </div>
-        </transition-group>
-        <div class="slide-dots">
-          <button
-            v-for="(_, i) in slides"
-            :key="i"
-            class="s-dot"
-            :class="{ active: idx === i }"
-            @click="idx = i"
-          ></button>
-        </div>
-      </div>
-    </div>
-  `
-})
-</script>
-
 <style scoped>
-
 .top-bar {
   background: var(--accent-primary);
   color: white;
@@ -372,61 +343,6 @@ const MegaSlider = defineComponent({
 
 
 .mega-divider { background: var(--border); }
-
-
-</style>
- 
-<style>
-.mega-slider { padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; }
-.slide-wrap { position: relative; border-radius: 12px; overflow: hidden; background: var(--bg-surface); }
-.slides-container { position: relative; height: 260px; }
-.slide-item {
-  position: absolute; inset: 0;
-  border-radius: 12px; overflow: hidden;
-}
-.slide-item img {
-  width: 100%; height: 100%; object-fit: cover;
-  transition: transform 6s ease;
-}
-.slide-item:hover img { transform: scale(1.05); }
-.slide-caption {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  padding: 1.25rem 1.25rem 1rem;
-  background: linear-gradient(transparent, rgba(0,0,0,0.75));
-  color: white;
-}
-.slide-tag {
-  display: inline-block;
-  background: var(--accent-primary);
-  color: white; font-size: 0.65rem; font-weight: 700;
-  padding: 0.2rem 0.6rem; border-radius: 100px;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  margin-bottom: 0.4rem;
-}
-.slide-caption h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
-.slide-caption p { font-size: 0.78rem; opacity: 0.85; margin-bottom: 0.6rem; }
-.slide-cta {
-  font-size: 0.8rem; font-weight: 700; color: white;
-  text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.5);
-  transition: border-color 0.2s;
-}
-.slide-cta:hover { border-color: white; }
-.slide-dots {
-  display: flex; justify-content: center; gap: 6px;
-  padding: 0.5rem 0 0;
-  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-}
-.s-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.45); border: none; cursor: pointer;
-  transition: all 0.25s; padding: 0;
-}
-.s-dot.active { background: white; width: 20px; border-radius: 4px; }
-
-.slide-fade-enter-active { transition: opacity 0.6s ease, transform 0.6s ease; }
-.slide-fade-leave-active { transition: opacity 0.4s ease; }
-.slide-fade-enter-from { opacity: 0; transform: translateX(20px); }
-.slide-fade-leave-to { opacity: 0; }
 
 
 .mega-fade-enter-active { transition: opacity 0.2s ease, transform 0.2s ease; }

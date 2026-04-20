@@ -37,7 +37,7 @@ const nextStep = async () => {
           })
 
           // 2. Create seller profile
-          await axios.post('http://localhost:5000/api/sellers', {
+          await axios.post('http://localhost:5005/api/sellers', {
               user_id: userRes.userId,
               name: form.value.companyName,
               email: form.value.email, // business email

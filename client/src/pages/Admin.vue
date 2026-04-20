@@ -9,14 +9,14 @@ const stats = ref({ sellers: 0, products: 0, revenue: 0 })
 
 const fetchData = async () => {
     try {
-        const sellersRes = await axios.get('http://localhost:5000/api/admin/pending-sellers')
+        const sellersRes = await axios.get('http://localhost:5005/api/admin/pending-sellers')
         pendingSellers.value = sellersRes.data
         
-        const productsRes = await axios.get('http://localhost:5000/api/admin/pending-products')
+        const productsRes = await axios.get('http://localhost:5005/api/admin/pending-products')
         pendingProducts.value = productsRes.data
 
-        const allSellers = await axios.get('http://localhost:5000/api/sellers')
-        const allProds = await axios.get('http://localhost:5000/api/products')
+        const allSellers = await axios.get('http://localhost:5005/api/sellers')
+        const allProds = await axios.get('http://localhost:5005/api/products')
         stats.value.sellers = allSellers.data.length
         stats.value.products = allProds.data.length
         stats.value.revenue = 1250000 
@@ -29,7 +29,7 @@ onMounted(fetchData)
 
 const verifySeller = async (id, status) => {
     try {
-        await axios.put(`http://localhost:5000/api/admin/sellers/${id}/verify`, { status })
+        await axios.put(`http://localhost:5005/api/admin/sellers/${id}/verify`, { status })
         await fetchData()
     } catch (err) {
         alert('Verification failed')
@@ -38,7 +38,7 @@ const verifySeller = async (id, status) => {
 
 const verifyProduct = async (id, status) => {
     try {
-        await axios.put(`http://localhost:5000/api/admin/products/${id}/verify`, { status })
+        await axios.put(`http://localhost:5005/api/admin/products/${id}/verify`, { status })
         await fetchData()
     } catch (err) {
         alert('Product moderation failed')
