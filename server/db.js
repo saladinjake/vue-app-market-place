@@ -83,7 +83,7 @@ const initDb = async () => {
     FOREIGN KEY(seller_id) REFERENCES sellers(id)
   )`);
 
-  try { await run("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'"); } catch(e) {}
+  try { await run("ALTER TABLE products ADD COLUMN status TEXT DEFAULT 'pending'"); } catch (e) { }
   await run("UPDATE products SET status = 'approved' WHERE status = 'pending'");
 
   await run(`CREATE TABLE IF NOT EXISTS orders (
@@ -213,7 +213,7 @@ const categoryData = [
 const seedDb = async () => {
   const userCount = await all("SELECT COUNT(*) as count FROM users");
   const productCount = await all("SELECT COUNT(*) as count FROM products");
-  
+
   if (userCount[0].count > 0 && productCount[0].count > 0) return;
 
   const hashedPassword = await bcrypt.hash('password123', 10);
@@ -310,5 +310,4 @@ const seedDb = async () => {
     );
   }
 };
-
 module.exports = { db, initDb, seedDb, all, run };

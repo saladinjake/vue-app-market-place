@@ -72,12 +72,24 @@ const nextStep = () => {
 const payWithStripe = async () => {
   placing.value = true
   try {
-    const stripe = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+    if (!window.Stripe) {
+      alert('Stripe.js failed to load. Please check your internet connection and refresh.')
+      placing.value = false
+      return
+    }
+    const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY
+    if (!stripeKey || stripeKey.includes('your_')) {
+      alert('Stripe public key is not configured. Please set VITE_STRIPE_PUBLIC_KEY in client/.env')
+      placing.value = false
+      return
+    }
+    const stripe = window.Stripe(stripeKey)
     const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
       items: cartStore.items,
       email: shipping.value.email
-    });
-    
+    })
+    if (res.data.error) throw new Error(res.data.error)
+
     // Create pre-payment order record
     await orderStore.placeOrder({
       userId: authStore.user?.id || 1,
@@ -92,41 +104,56 @@ const payWithStripe = async () => {
     })
     cartStore.clearCart()
 
-    const result = await stripe.redirectToCheckout({
-      sessionId: res.data.id
-    });
-    if (result.error) alert(result.error.message);
+    const result = await stripe.redirectToCheckout({ sessionId: res.data.id })
+    if (result.error) alert(result.error.message)
   } catch (err) {
     console.error('Stripe error:', err)
-    alert('Stripe initialization failed.')
+    const msg = err?.response?.data?.error || err?.message || 'Unknown error'
+    alert(`Stripe payment failed: ${msg}`)
   } finally {
     placing.value = false
   }
 }
 
-const payWithPaystack = () => {
+const payWithPaystack = async () => {
   placing.value = true
-  
+
   if (payment.value.method !== 'card') {
-    return placeOrder()
+    await placeOrder()
+    return
+  }
+
+  if (!window.PaystackPop) {
+    alert('Paystack failed to load. Please check your internet connection and refresh.')
+    placing.value = false
+    return
+  }
+
+  const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY
+  if (!paystackKey || paystackKey.includes('your_')) {
+    alert('Paystack public key is not configured. Please set VITE_PAYSTACK_PUBLIC_KEY in client/.env')
+    placing.value = false
+    return
   }
 
   const handler = window.PaystackPop.setup({
-    key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_your_default_key',
+    key: paystackKey,
     email: shipping.value.email,
-    amount: Math.round(total.value * 100), 
-    currency: 'USD', 
-    ref: 'PAY_' + Math.floor((Math.random() * 1000000000) + 1),
+    // Paystack amounts are in the smallest currency unit (kobo for NGN)
+    // Test mode only supports NGN, GHS, ZAR, KES — not USD
+    amount: Math.round(total.value * 100),
+    currency: 'NGN',
+    ref: 'PAY_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
     callback: (response) => {
       placeOrder(response.reference)
     },
     onClose: () => {
       placing.value = false
-      alert('Payment cancelled.')
+      alert('Payment window closed. Please try again to complete your order.')
     }
-  });
+  })
 
-  handler.openIframe();
+  handler.openIframe()
 }
 
 const placeOrder = async (paymentRef = null) => {
